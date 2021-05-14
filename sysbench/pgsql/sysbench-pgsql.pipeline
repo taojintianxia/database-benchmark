@@ -1,0 +1,59 @@
+#!groovy
+
+def DATABASE_TYPE
+def TEST_FUNCTION_LIST
+
+pipeline {
+  agent any
+
+  stages {
+    stage('Init Jenkins Pipeline Environment') {
+      steps {
+        script {
+          DATABASE_TYPE = 'mysql'
+          TEST_FUNCTION_LIST = ['sharding', 'readwrite-splitting', 'encrypt']
+        }
+      }
+    }
+
+    // clone code, compile code and unzip proxy distribution on proxy node
+    stage('Install Sharding Proxy') {
+      steps {
+        echo 'install sharding proxy finished'
+      }
+    }
+
+    // generate the corresponding directories and make the script read on sysbench node.
+    stage('Prepare for Testing ${DATABASE_TYPE}') {
+      steps {
+        echo 'install sharding proxy for ${DATABASE_TYPE} finished'
+      }
+    }
+
+    stage('Test In a Loop') {
+      steps {
+        script {
+          for (int i = 0; i < TEST_FUNCTION_LIST.size(); i++) {
+
+            stage("Prepare Proxy Config for ${TEST_FUNCTION_LIST[i]}") {
+              node('proxy') {
+                echo "prepare the config for ${TEST_FUNCTION_LIST[i]}"
+              }
+            }
+
+            stage("Sysbench Start to Test ${TEST_FUNCTION_LIST[i]}") {
+              node('proxy') {
+                echo "sysbench start to test ${TEST_FUNCTION_LIST[i]}"
+              }
+            }
+
+            stage("Generate Report for ${TEST_FUNCTION_LIST[i]}") {
+              echo "generate report for ${TEST_FUNCTION_LIST[i]}"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
